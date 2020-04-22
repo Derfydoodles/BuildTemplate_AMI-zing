@@ -7,7 +7,7 @@ Parameters:
     Type: AWS::EC2::KeyPair::KeyName
 
 Resources: 
-  jayveevK8sMaster:
+  AMI-zing:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: ami-04083432ece861896
@@ -15,10 +15,7 @@ Resources:
       KeyName: !Ref KeyName
       SecurityGroupIds:
       - sg-0edbc623dc87e2892
-      BlockDeviceMappings:
-      - DeviceName: "/dev/sda1"
-        Ebs:
-          VolumeSize: 20
+      - sg-0f0b0eb448eeccce1
       Tags:
       - Key: Name
         Value: AutoProj-P1T2-noDSA-noTag
