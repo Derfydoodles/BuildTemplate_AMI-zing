@@ -1,0 +1,22 @@
+  
+AWSTemplateFormatVersion: 2010-09-09
+Description: "PHDSaaS Automation Project AMI-zing"
+
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 key pair for EC2 instance Access.
+    Type: AWS::EC2::KeyPair::KeyName
+
+Resources: 
+  AMI-zing:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-088806b13d002fe57
+      InstanceType: t2.medium
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+      - sg-0edbc623dc87e2892
+      - sg-0f0b0eb448eeccce1
+      Tags:
+      - Key: Name
+        Value: AutoProj-P1T9-noDSA-noTag-WS
