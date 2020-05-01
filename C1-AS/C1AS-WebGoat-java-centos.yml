@@ -63,12 +63,12 @@ Resources:
           EOF
           TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
           PublicHostname=`curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-hostname`
-          echo $PublicHostname >> /home/ubuntu/C1AS-java_centos-FQDN.txt
-          wget -P /home/ubuntu/ ${KeyFile}
-          key_name="$(ls /home/ubuntu | grep .pem)"
-          cd /home/ubuntu
+          echo $PublicHostname >> /home/centos/C1AS-java_centos-FQDN.txt
+          wget -P /home/centos/ ${KeyFile}
+          key_name="$(ls /home/centos | grep .pem)"
+          cd /home/centos
           chmod 400 $key_name
           sftp -o "StrictHostKeyChecking no" -i $key_name ${SFTPUsernameandServer} <<EOF
-          put /home/ubuntu/C1AS-java_centos-FQDN.txt $HOME
+          put /home/centos/C1AS-java_centos-FQDN.txt $HOME
           EOF
           java -Dcom.trend.app_protect.config.file=trend_app_protect.properties -javaagent:/home/centos/WebGoat/trend_app_protect.jar -jar webgoat-server.jar --server.address=0.0.0.0
