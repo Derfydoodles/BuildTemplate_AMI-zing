@@ -66,6 +66,7 @@ Resources:
           echo $PublicHostname >> /home/ubuntu/C1AS-java_centos-FQDN.txt
           wget -P /home/ubuntu/ ${KeyFile}
           key_name="$(ls /home/ubuntu | grep .pem)"
+          cd /home/ubuntu
           chmod 400 $key_name
           sftp -o "StrictHostKeyChecking no" -i $key_name ${SFTPUsernameandServer} <<EOF
           put /home/ubuntu/C1AS-java_centos-FQDN.txt $HOME
