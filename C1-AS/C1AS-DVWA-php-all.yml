@@ -29,6 +29,13 @@ Parameters:
     - v71
     - v72
     - v73
+  SFTPUsernameandServer:
+    Description: Enter the SFTP server and username where you will put the text file containing the FQDN.
+    Type: String
+    Default: ubuntu@172.x.x.x
+  KeyFile:
+    Description: Enter the download link of the key pair file to be used to authenticate to the sftp server.
+    Type: String
 
 
 Mappings:
@@ -141,6 +148,15 @@ Resources:
               sudo sed -i "949 a trend_app_protect.key = ${AccessKey}" /etc/php/${PHPv}/apache2/php.ini
               sudo sed -i "950 a trend_app_protect.secret = ${SecretKey}" /etc/php/${PHPv}/apache2/php.ini
               sudo service apache2 start
+              TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
+              PublicHostname=`curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-hostname`
+              echo $PublicHostname >> /home/ubuntu/C1AS-php-FQDN.txt
+              wget -P /home/ubuntu/ ${KeyFile}
+              key_name="$(ls /home/ubuntu | grep .pem)"
+              chmod 400 $key_name
+              sftp -o "StrictHostKeyChecking no" -i $key_name ${SFTPUsernameandServer} <<EOF
+              put /home/ubuntu/C1AS-php-FQDN.txt $HOME
+              EOF
             - {
               # This is where we keep the complex things we want inserted into the Fn::Sub literal block
               # You can even use Fn::If statements in this section

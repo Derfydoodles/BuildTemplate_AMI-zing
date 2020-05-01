@@ -13,6 +13,13 @@ Parameters:
     Description: Group secret key of C1-AS
     Type: String
     Default: 90039018-7866-4c96-8a60-6000a5f9ec58
+  SFTPUsernameandServer:
+    Description: Enter the SFTP server and username where you will put the text file containing the FQDN.
+    Type: String
+    Default: ubuntu@172.x.x.x
+  KeyFile:
+    Description: Enter the download link of the key pair file to be used to authenticate to the sftp server.
+    Type: String
 
 Resources: 
   C1ASPipeline:
@@ -51,6 +58,15 @@ Resources:
           "key":"${AccessKey}",
           "secret":"${SecretKey}"
           }
-          EOF
+          EOF          
           sed -i "2 a require('trend_app_protect');" server.js
+          TOKEN=`curl -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600"`
+          PublicHostname=`curl -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/public-hostname`
+          echo $PublicHostname >> /home/ubuntu/C1AS-nodeJS-FQDN.txt
+          wget -P /home/ubuntu/ ${KeyFile}
+          key_name="$(ls /home/ubuntu | grep .pem)"
+          chmod 400 $key_name
+          sftp -o "StrictHostKeyChecking no" -i $key_name ${SFTPUsernameandServer} <<EOF
+          put /home/ubuntu/C1AS-nodeJS-FQDN.txt $HOME
+          EOF
           npm start
