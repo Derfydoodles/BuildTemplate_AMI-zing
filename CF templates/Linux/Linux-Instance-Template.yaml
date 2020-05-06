@@ -1,0 +1,221 @@
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 key pair for EC2 instance Access.
+    Type: AWS::EC2::KeyPair::KeyName
+  Subnet:
+    Description: Subnet for the Instance
+    Type: "AWS::EC2::Subnet::Id"
+  SecurityGroups:
+    Description: Security groups that can be used to access the EC2 instances
+    Type: 'List<AWS::EC2::SecurityGroup::Id>'
+  InstanceType:
+    Description: Instance EC2 instance type
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+    - t2.nano
+    - t2.micro
+    - t2.small
+    - t2.medium
+    - t2.large
+    - t2.xlarge
+    - t2.2xlarge
+    - t3.nano
+    - t3.micro
+    - t3.small
+    - t3.medium
+    - t3.large
+    - t3.xlarge
+    - t3.2xlarge
+    - m4.large
+    - m4.xlarge
+    - m4.2xlarge
+    - m4.4xlarge
+    - m4.10xlarge
+    - m4.16xlarge
+    - m5.large
+    - m5.xlarge
+    - m5.2xlarge
+    - m5.4xlarge
+    - m5.8xlarge
+
+  OSType:
+   Description: Choose you Operating System Linux 
+   Type: String
+   AllowedValues:
+   - AmazonLinux
+   - AmazonLinux2
+   - RHEL8
+   - RHEL7
+   - CentOS7
+   - Ubuntu16
+   - Ubuntu18
+   - SUSE12
+   - SUSE15
+
+Resources:
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId:
+       Fn::FindInMap:
+       - RegionAndInstanceTypeToAMIID
+       - Ref: AWS::Region
+       - Ref: OSType
+      InstanceType:
+       Ref: InstanceType
+      KeyName: !Ref KeyName
+      SecurityGroupIds: !Ref SecurityGroups
+
+Mappings:
+ RegionAndInstanceTypeToAMIID:
+  us-east-1:
+   AmazonLinux: ami-0915e09cc7ceee3ab
+   AmazonLinux2: ami-0323c3dd2da7fb37d
+   RHEL8: ami-098f16afa9edf40be
+   RHEL7: ami-0015fcaa5516c75ed
+   CentOS7: ami-0057d8e6fb0692b80
+   Ubuntu16: ami-09317d712aa0b3211
+   Ubuntu18: ami-078a7f1dda72c0775
+   SUSE12: ami-095d73d5068ebbc22
+   SUSE15: ami-0068cd63259e9f24c
+  us-east-2:
+   AmazonLinux: ami-0d542ef84ec55d71c
+   AmazonLinux2: ami-02ccb28830b645a41
+   RHEL8: ami-0520e698dd500b1d1
+   RHEL7: ami-0a33696f
+   CentOS7: ami-0f2b4fc905b0bd1f1
+   Ubuntu16: ami-0d03add87774b12c5
+   Ubuntu18: ami-0d5d9d301c853a04a
+   SUSE12: ami-051fc7a55ea30936f
+   SUSE15: ami-052a6e77572eba9a9
+  us-west-1:
+   AmazonLinux: ami-0027eed75be6f3bf4
+   AmazonLinux2: ami-06fcc1f0bc2c8943f
+   RHEL8: ami-066df92ac6f03efca
+   RHEL7: ami-0388d197bb42be9be
+   CentOS7: ami-000dcb08c498349f2
+   Ubuntu16: ami-024a57aa5ecba44d9
+   Ubuntu18: ami-0fff89cb9d1397b10
+   SUSE12: ami-065337027ad1efc9a
+   SUSE15: ami-02d732ce729636ebb
+  us-west-2:
+   AmazonLinux: ami-01f08ef3e76b957e5
+   AmazonLinux2: ami-0d6621c01e8c2de2c
+   RHEL8: ami-02f147dfb8be58a10
+   RHEL7: ami-00a38949ddb2ddb5c
+   CentOS7: ami-003b96877441a2e9f
+   Ubuntu16: ami-0d0c51d06f2b0e317
+   Ubuntu18: ami-09517d3f1a9a1cd9a
+   SUSE12: ami-02be82c2dbb5d0e48
+   SUSE15: ami-0b9c71b41cc33f180
+  ap-southeast-1:
+   AmazonLinux: ami-0dff4318d85149d5d
+   AmazonLinux2: ami-0ec225b5e01ccb706
+   RHEL8: ami-02b6d9703a69265e9
+   RHEL7: ami-02079c0159aade6b4
+   CentOS7: ami-0051aaf7a01cecfba
+   Ubuntu16: ami-01c54eee4ab8725c0
+   Ubuntu18: ami-0f7719e8b7ba25c61
+   SUSE12: ami-069a01be0e4a8b0b7
+   SUSE15: ami-09037fd065d6d7698
+  ap-southeast-2:
+   AmazonLinux: ami-050e1ec030abb8dde
+   AmazonLinux2: ami-0970010f37c4f9c8d
+   RHEL8: ami-0810abbfb78d37cdf
+   RHEL7: ami-01448715c06d2edb5
+   CentOS7: ami-00bc4a6f850763389
+   Ubuntu16: ami-068bc483f7b1c182a
+   Ubuntu18: ami-0a52cd22f9b5a07cc
+   SUSE12: ami-0a9a14a624a3116cf
+   SUSE15: ami-0320c4dd7c5ba560c
+  ap-northeast-1:
+   AmazonLinux: ami-0318ecd6d05daa212
+   AmazonLinux2: ami-0f310fced6141e627
+   RHEL8: ami-07dd14faa8a17fb3e
+   RHEL7: ami-00b95502a4d51a07e
+   CentOS7: ami-008c2db991193176d
+   Ubuntu16: ami-0196a6e6d6129f2c8
+   Ubuntu18: ami-0278fe6949f6b1a06
+   SUSE12: ami-0db1d9f0c47ea98d6
+   SUSE15: ami-0985eb6c1f2ec1485
+  ap-northeast-2:
+   AmazonLinux: ami-09391a0ad9f9243b6
+   AmazonLinux2: ami-01288945bd24ed49a
+   RHEL8: ami-0f8dedf5ec103d6a5
+   RHEL7: ami-01bbc5bd4175d425c
+   CentOS7:  ami-00aae98c8e24e7d73
+   Ubuntu16: ami-04e5ceec6723d7ec5
+   Ubuntu18: ami-093cabe13ca296b11
+   SUSE12: ami-0bef6228aa05d215b
+   SUSE15: ami-0816cde11e4fdddec
+  ap-south-1:
+   AmazonLinux: ami-04b2519c83e2a7ea5
+   AmazonLinux2: ami-0470e33cd681b2476
+   RHEL8: ami-052c08d70def0ac62
+   RHEL7: ami-0025cb7094e63c0c0
+   CentOS7:  ami-0009e88f05cf1087c
+   Ubuntu16: ami-01b8d0884f38e37b4
+   Ubuntu18: ami-0b44050b2d893d5f7
+   SUSE12: ami-0eb64c49a2299a148
+   SUSE15: ami-04adb0084e85aef06
+  ca-central-1:
+   AmazonLinux: ami-021321e9bc16d5186
+   AmazonLinux2: ami-054362537f5132ce2
+   RHEL8: ami-04312317b9c8c4b51
+   RHEL7: ami-05508913d3360e9af
+   CentOS7:  ami-003dd41a35c810eef
+   Ubuntu16: ami-03785c71db4b1f73a
+   Ubuntu18: ami-0edd51cc29813e254
+   SUSE12: ami-0f2e3d8e28f0502bf
+   SUSE15: ami-07563ea32a6fc69a0
+  eu-central-1:
+   AmazonLinux: ami-03ab4e8f1d88ce614
+   AmazonLinux2: ami-076431be05aaf8080
+   RHEL8: ami-07dfba995513840b5
+   RHEL7: ami-02872a67a7c4b9e12
+   CentOS7:  ami-0058a39fa9aa77501
+   Ubuntu16: ami-00c3243b989d3d9c9
+   Ubuntu18: ami-061aaaac62de85935
+   SUSE12: ami-08060c2436cef41e7
+   SUSE15: ami-0d63f0d5c7bc514dd
+  eu-west-1:
+   AmazonLinux: ami-00890f614e48ce866
+   AmazonLinux2: ami-06ce3edf0cff21f07
+   RHEL8: ami-08f4717d06813bf00
+   RHEL7: ami-0202869bdd0fc8c75
+   CentOS7:  ami-00198bed4b198b6ac
+   Ubuntu16: ami-00d2df3bab3c034a8
+   Ubuntu18: ami-02e0f2811af505409
+   SUSE12: ami-0a3ee58747105ce46
+   SUSE15: ami-02ecd61acb94c136d
+  eu-west-2:
+   AmazonLinux: ami-0596aab74a1ce3983
+   AmazonLinux2: ami-01a6e31ac994bbc09
+   RHEL8: ami-0fc841be1f929d7d1
+   RHEL7: ami-014ec3973fd627c70
+   CentOS7:  ami-0008387b36c9ff743
+   Ubuntu16: ami-08eb848b8bf818b28
+   Ubuntu18: ami-02f82a71e5f0126fa
+   SUSE12: ami-07d8d2cb6b1529ff4
+   SUSE15: ami-0cb6906963954f950
+  eu-west-3:
+   AmazonLinux: ami-06cba15121418cdcb
+   AmazonLinux2: ami-00077e3fed5089981
+   RHEL8: ami-09e973def6bd1ad96
+   RHEL7: ami-018c55e9d34f949e9
+   CentOS7:  ami-00548e9e2ae95fa4d
+   Ubuntu16: ami-0b92a0ac418c64fb1
+   Ubuntu18: ami-08c757228751c5335
+   SUSE12: ami-066d51a95fd0ce50f
+   SUSE15: ami-0fd378c51c99847e9
+  eu-north-1:
+   AmazonLinux: ami-0c5254b956817b326
+   AmazonLinux2: ami-0b7a46b4bd694e8a6
+   RHEL8: ami-0b149b24810ebb323
+   RHEL7: ami-030b10a31b2b6df19
+   CentOS7:  ami-0038c6136f97618ff
+   Ubuntu16: ami-0caae0b310f01ff33
+   Ubuntu18: ami-050981837962d44ac
+   SUSE12: ami-070bad0989b367ad9
+   SUSE15: ami-002480fb4157869fe
