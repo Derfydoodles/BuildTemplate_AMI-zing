@@ -1,0 +1,207 @@
+Description: "Template to launch Windows Server Instance"
+
+Parameters:
+  SubnetID:
+    Description: Subnet of the instance
+    Type: AWS::EC2::Subnet::Id
+    Default: subnet-9673d3da
+    
+  KeyName:
+    Description: Name of an existing EC2 key pair for EC2 instance Access
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: shared-kp-ohio 
+    
+  InstanceType:
+    Description: Instance EC2 instance type
+    Type: String
+    Default: t2.medium
+    AllowedValues:
+    - t2.nano
+    - t2.micro
+    - t2.small
+    - t2.medium
+    - t2.large
+    - t2.xlarge
+    - t2.2xlarge
+    - t3.nano
+    - t3.micro
+    - t3.small
+    - t3.medium
+    - t3.large
+    - t3.xlarge
+    - t3.2xlarge
+    - m4.large
+    - m4.xlarge
+    - m4.2xlarge
+    - m4.4xlarge
+    - m4.10xlarge
+    - m4.16xlarge
+    - m5.large
+    - m5.xlarge
+    - m5.2xlarge
+    - m5.4xlarge
+    - m5.8xlarge
+      
+  SecurityGroups:
+    Description: Security groups that can be used to access the EC2 instances
+    Type: 'List<AWS::EC2::SecurityGroup::Id>'
+  
+  NameTag:
+    Description: EC2 Instance Name Tags
+    Type: String
+    
+  osType:
+    Description: Operating System of the server that will be deployed
+    Type: String
+    AllowedValues:
+    - WindowsServer200332bit
+    - WindowsServer200364bit
+    - WindowsServer2008R2
+    - WindowsServer2012R2
+    - WindowsServer2016
+    - WindowsServer2019
+
+Mappings: 
+  RegionMap: 
+    us-east-1:
+        WindowsServer2019: ami-0c278895328cddfdd
+        WindowsServer2016: ami-0f7122ac3de6f22b2
+        WindowsServer2012R2: ami-06b0c9a730e8035be
+        WindowsServer2008R2: ami-080aa52f6e2f07d13
+        WindowsServer200332bit: ami-840a51ee #32bit
+        WindowsServer200364bit: ami-8dac54e6 #64bit
+    us-east-2:
+        WindowsServer2019: ami-08db69d5de9dc9245
+        WindowsServer2016: ami-0b2ce977c1b36856d
+        WindowsServer2012R2: ami-069c53e1e7e4fac42
+        WindowsServer2008R2: ami-05376c558a41497e9
+        WindowsServer200332bit: ami-00237965
+        WindowsServer200364bit: ami-08267c6d
+    us-west-1:
+        WindowsServer2019: ami-0390f4b65b4cbe84a
+        WindowsServer2016: ami-06894046d41571622
+        WindowsServer2012R2: ami-02e1d4031abd2c358
+        WindowsServer2008R2: ami-00d406259298eca41
+        WindowsServer200332bit: ami-27ed9847
+        WindowsServer200364bit: ami-d730c793
+    us-west-2:
+        WindowsServer2019: ami-059377ba193aa9309
+        WindowsServer2016: ami-0f26f5844bdf3c2ad
+        WindowsServer2012R2: ami-0de8bce894b0eadce
+        WindowsServer2008R2: ami-006f1b6d4f19a8c12
+        WindowsServer200332bit: ami-34607a55
+        WindowsServer200364bit: ami-17617b76
+    ap-south-1:
+        WindowsServer2019: ami-0d0b566c7d15a03a3
+        WindowsServer2016: ami-002aa17df8c86f635
+        WindowsServer2012R2: ami-06039f3505857ba51
+        WindowsServer2008R2: ami-02595ce1b649be9c5
+        WindowsServer200332bit: ami-a60b76c9
+        WindowsServer200364bit: ami-3c0a7753
+    ap-northeast-2:
+        WindowsServer2019: ami-0419b1bc0ae0409c1
+        WindowsServer2016: ami-061928edf87ae6cad
+        WindowsServer2012R2: ami-03cf6f7ecd6fa4a04
+        WindowsServer2008R2: ami-02e9cca7a152369f7
+        WindowsServer200332bit: ami-68f42906
+        WindowsServer200364bit: ami-1ff52871
+    ap-southeast-1:
+        WindowsServer2019: ami-0fdb514b22fa2aed1
+        WindowsServer2016: ami-0869caa73f897a75b
+        WindowsServer2012R2: ami-07e72935c60188f7d
+        WindowsServer2008R2: ami-02912b75efa51506d
+        WindowsServer200332bit: ami-a58945c6
+        WindowsServer200364bit: ami-5984483a
+    ap-southeast-2:
+        WindowsServer2019: ami-030bf0fa163eee558
+        WindowsServer2016: ami-0869caa73f897a75b
+        WindowsServer2012R2: ami-07e72935c60188f7d
+        WindowsServer2008R2: ami-003315f93df36d638
+        WindowsServer200332bit: ami-dc5471bf
+        WindowsServer200364bit: ami-b85673db
+    ap-northeast-1:
+        WindowsServer2019: ami-081059acd844d5f07
+        WindowsServer2016: ami-0f15599e3fcc4b8a4
+        WindowsServer2012R2: ami-0d219ad6996311a75
+        WindowsServer2008R2: ami-05138a6cb18ac84f2
+        WindowsServer200332bit: ami-1b1b2675
+        WindowsServer200364bit: ami-5119243f
+    ca-central-1:
+        WindowsServer2019: ami-09318195b724a7126
+        WindowsServer2016: ami-02c212eea0b630bbf
+        WindowsServer2012R2: ami-0bc2df710357a0577
+        WindowsServer2008R2: ami-0a6bcc898d1d5c018
+        WindowsServer200332bit: ami-dcba06b8
+        WindowsServer200364bit: ami-6ab60a0e
+    eu-central-1:
+        WindowsServer2019: ami-06f553152bb794f14
+        WindowsServer2016: ami-0e8ecd9d5c3d37a71
+        WindowsServer2012R2: ami-05b57adfb2ffe642d
+        WindowsServer2008R2: ami-01307ad160fc2bf65
+        WindowsServer200332bit: ami-01e4fa6d
+        WindowsServer200364bit: ami-40e7f92c
+    eu-west-1:
+        WindowsServer2019: ami-07c8a3a59f2f7305b
+        WindowsServer2016: ami-0d3e6055f3c1699c6
+        WindowsServer2012R2: ami-00d6df90f231e6252
+        WindowsServer2008R2: ami-095f25908b29c2415
+        WindowsServer200332bit: ami-b43b93c7
+        WindowsServer200364bit: ami-f7399184
+    eu-west-2:
+        WindowsServer2019: ami-0355df7fad2bfb4f9
+        WindowsServer2016: ami-01de3128ed02d9e1c
+        WindowsServer2012R2: ami-08f01a0f48406eafd
+        WindowsServer2008R2: ami-001470c050aaac35b
+        WindowsServer200332bit: ami-0abbae6e
+        WindowsServer200364bit: ami-c4a4b1a0
+    eu-south-1:
+        WindowsServer2019: ami-07eb5e21a48e63b46
+        WindowsServer2016:  ami-09206fe93096f1360
+        WindowsServer2012R2: ami-0506dde83794f3168
+        WindowsServer2008R2: ami-07a187a0569a85424
+        #WindowsServer200332bit: no available ami found
+        #WindowsServer200364bit: no available ami found
+    eu-west-3:
+        WindowsServer2019: ami-0fbd0855b000b195a
+        WindowsServer2016: ami-09dbf6353100bde3a
+        WindowsServer2012R2: ami-09acbefee6ea3135f
+        WindowsServer2008R2: ami-05549d57e77cc9d5f
+        #WindowsServer200332bit: no available ami found 
+        #WindowsServer200364bit: no available ami found
+    eu-north-1:
+        WindowsServer2019: ami-0bbfdde55cb1b4726
+        WindowsServer2016: ami-0b4717387ab9627fd
+        WindowsServer2012R2: ami-011845d4a0725abd7
+        WindowsServer2008R2: ami-00901574892b6b0c2
+        #WindowsServer200332bit: no available ami found 
+        #WindowsServer200364bit: no available ami found
+    me-south-1:
+        WindowsServer2019: ami-0f964e9a712aad003
+        WindowsServer2016: ami-050812896f3bd6a49
+        WindowsServer2012R2: ami-099e468e4aec942a0
+        WindowsServer2008R2: ami-0242e16c81457c3f4
+        #WindowsServer200332bit: no available ami found 
+        #WindowsServer200364bit: no available ami found
+    sa-east-1:
+        WindowsServer2019: ami-0b3d9fa7386b999a4
+        WindowsServer2016: ami-08393c14aa221a1a2
+        WindowsServer2012R2: ami-0ea5b29dbd7633af0
+        WindowsServer2008R2: ami-0292da8ae458e2509
+        WindowsServer200332bit: ami-0383026f
+        WindowsServer200364bit: ami-1e800172
+  
+Resources:
+  Ec2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: !Ref InstanceType
+      ImageId: !FindInMap
+        - RegionMap
+        - !Ref 'AWS::Region'
+        - !Ref osType
+      KeyName: !Ref KeyName
+      SubnetId: !Ref SubnetID
+      SecurityGroupIds: !Ref SecurityGroups
+      Tags:
+      - Key: Name
+        Value: !Ref NameTag
