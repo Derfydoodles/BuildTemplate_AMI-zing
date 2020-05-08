@@ -1,0 +1,301 @@
+Description: "Linux CF with agent installed"
+
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 key pair for EC2 instance Access.
+    Type: 'AWS::EC2::KeyPair::KeyName'
+    Default: shared-kp-ohio
+  Subnet:
+    Description: Subnet for the Instance
+    Type: 'AWS::EC2::Subnet::Id'
+  SecurityGroups: 
+    Description: Security Group for Instance
+    Type: 'List<AWS::EC2::SecurityGroup::Id>'
+  InstanceType:
+    Description: WebServer EC2 instance type
+    Type: String
+    Default: t3.small
+    AllowedValues: [t2.nano, t2.micro, t2.small, t2.medium, t2.large, t2.xlarge, t2.2xlarge,
+      t3.nano, t3.micro, t3.small, t3.medium, t3.large, t3.xlarge, t3.2xlarge,
+      m4.large, m4.xlarge, m4.2xlarge, m4.4xlarge, m4.10xlarge,
+      m5.large, m5.xlarge, m5.2xlarge, m5.4xlarge,
+      c5.large, c5.xlarge, c5.2xlarge, c5.4xlarge, c5.9xlarge,
+      g3.8xlarge,
+      r5.large, r5.xlarge, r5.2xlarge, r5.4xlarge, r3.12xlarge,
+      i3.xlarge, i3.2xlarge, i3.4xlarge, i3.8xlarge,
+      d2.xlarge, d2.2xlarge, d2.4xlarge, d2.8xlarge]
+    ConstraintDescription: must be a valid EC2 instance type.
+#   LatestAmiId:
+#   Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+#   Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+  OSType:
+   Description: AMI ID of the instance
+   Type: String
+   AllowedValues:
+   - AmazonLinux2
+   - RHEL8
+   - CentOS7
+   - Ubuntu16
+   - Ubuntu18
+   - SUSE12
+   - SUSE15
+  NameTag:
+    Description: EC2 Instance Name Tags
+    Type: String
+  ShiftTag:
+    Description: Select your shift
+    Type: String
+    AllowedValues:
+    - ANZ-Shift
+    - IST-Shift
+    - NABU-Shift
+    
+Resources:
+ EC2Instance:
+   Type: AWS::EC2::Instance
+   Properties:
+    InstanceType: !Ref InstanceType
+    ImageId: !FindInMap 
+    - RegionMap 
+    - !Ref 'AWS::Region'
+    - !Ref OSType
+    KeyName: !Ref KeyName
+    SubnetId: !Ref Subnet
+    SecurityGroupIds: !Ref SecurityGroups
+    Tags: 
+      - Key: "Name"
+        Value: Ref NameTag
+      - Key: "Shift"
+        Value: Ref ShiftTag
+        
+    UserData:
+        Fn::Base64: |
+            #!/bin/bash
+
+                ACTIVATIONURL='dsm://agents.deepsecurity.trendmicro.com:443/'
+                MANAGERURL='https://app.deepsecurity.trendmicro.com:443'
+                CURLOPTIONS='--silent --tlsv1.2'
+                linuxPlatform='';
+                isRPM='';
+
+                if [[ $(/usr/bin/id -u) -ne 0 ]]; then
+                    echo You are not running as the root user.  Please try again with root privileges.;
+                    logger -t You are not running as the root user.  Please try again with root privileges.;
+                    exit 1;
+                fi;
+
+                if ! type curl >/dev/null 2>&1; then
+                    echo "Please install CURL before running this script."
+                    logger -t Please install CURL before running this script
+                    exit 1
+                fi
+
+                CURLOUT=$(eval curl $MANAGERURL/software/deploymentscript/platform/linuxdetectscriptv1/ -o /tmp/PlatformDetection $CURLOPTIONS;)
+                err=$?
+                if [[ $err -eq 60 ]]; then
+                    echo "TLS certificate validation for the agent package download has failed. Please check that your Deep Security Manager TLS certificate is signed by a trusted root certificate authority. For more information, search for \"deployment scripts\" in the Deep Security Help Center."
+                    logger -t TLS certificate validation for the agent package download has failed. Please check that your Deep Security Manager TLS certificate is signed by a trusted root certificate authority. For more information, search for \"deployment scripts\" in the Deep Security Help Center.
+                    exit 1;
+                fi
+
+                if [ -s /tmp/PlatformDetection ]; then
+                    . /tmp/PlatformDetection
+                else
+                    echo "Failed to download the agent installation support script."
+                    logger -t Failed to download the Deep Security Agent installation support script
+                    exit 1
+                fi
+
+                platform_detect
+                if [[ -z "${linuxPlatform}" ]] || [[ -z "${isRPM}" ]]; then
+                    echo Unsupported platform is detected
+                    logger -t Unsupported platform is detected
+                    exit 1
+                fi
+
+                echo Downloading agent package...
+                if [[ $isRPM == 1 ]]; then package='agent.rpm'
+                    else package='agent.deb'
+                fi
+                curl -H "Agent-Version-Control: on" $MANAGERURL/software/agent/${runningPlatform}${majorVersion}/${archType}/$package?tenantID=73293 -o /tmp/$package $CURLOPTIONS
+
+                echo Installing agent package...
+                rc=1
+                if [[ $isRPM == 1 && -s /tmp/agent.rpm ]]; then
+                    rpm -ihv /tmp/agent.rpm
+                    rc=$?
+                elif [[ -s /tmp/agent.deb ]]; then
+                    dpkg -i /tmp/agent.deb
+                    rc=$?
+                else
+                    echo Failed to download the agent package. Please make sure the package is imported in the Deep Security Manager
+                    logger -t Failed to download the agent package. Please make sure the package is imported in the Deep Security Manager
+                    exit 1
+                fi
+                if [[ ${rc} != 0 ]]; then
+                    echo Failed to install the agent package
+                    logger -t Failed to install the agent package
+                    exit 1
+                fi
+
+                echo Install the agent package successfully
+
+                sleep 15
+                /opt/ds_agent/dsa_control -r
+                /opt/ds_agent/dsa_control -a $ACTIVATIONURL "tenantID:207FC65B-590D-9784-8504-DB36F734F163" "token:7B7CB647-1DB3-649B-B67B-27B1D518E4D9" "policyid:34"
+                # /opt/ds_agent/dsa_control -a dsm://agents.deepsecurity.trendmicro.com:443/ "tenantID:207FC65B-590D-9784-8504-DB36F734F163" "token:7B7CB647-1DB3-649B-B67B-27B1D518E4D9" "policyid:34"
+        
+Mappings:
+    RegionMap:
+        us-east-1:
+            AmazonLinux2: "ami-0323c3dd2da7fb37d"
+            RHEL8: "ami-098f16afa9edf40be"
+            CentOS7: "ami-0077ef9ac037e2df6"
+            Ubuntu16: "ami-039a49e70ea773ffc"
+            Ubuntu18: "ami-085925f297f89fce1"
+            SUSE12: "ami-095d73d5068ebbc22"
+            SUSE15: "ami-0068cd63259e9f24c"
+        us-east-2:
+            AmazonLinux2: "ami-0f7919c33c90f5b58"
+            RHEL8: "ami-0a54aef4ef3b5f881"
+            CentOS7: "ami-00ae92a6b8f96ef25"
+            Ubuntu16: "ami-07c1207a9d40bc3bd"
+            Ubuntu18: "ami-03ffa9b61e8d2cfda"
+            SUSE12: "ami-0185282502c4b22be"
+            SUSE15: "ami-013d888fbcf1a3962"
+        us-west-1:
+            AmazonLinux2: "ami-06fcc1f0bc2c8943f"
+            RHEL8: "ami-066df92ac6f03efca"
+            CentOS7: "ami-065a27adf2d0872a9"
+            Ubuntu16: "ami-00e3060e4cb84a493"
+            Ubuntu18: "ami-0f56279347d2fa43e"
+            SUSE12: "ami-065337027ad1efc9a"
+            SUSE15: "ami-02d732ce729636ebb"
+        us-west-2:
+            AmazonLinux2: "ami-0d6621c01e8c2de2c"
+            RHEL8: "ami-02f147dfb8be58a10"
+            CentOS7: "ami-067dffce9a06dc3c4"
+            Ubuntu16: "ami-008c6427c8facbe08"
+            Ubuntu18: "ami-003634241a8fcdec0"
+            SUSE12: "ami-02be82c2dbb5d0e48"
+            SUSE15: "ami-0b9c71b41cc33f180"
+        ap-northeast-2:
+            AmazonLinux2: "ami-01288945bd24ed49a"
+            RHEL8: "ami-0f8dedf5ec103d6a5"
+            CentOS7: "ami-0cedf07e7033ddfa5"
+            Ubuntu16: "ami-04e5ceec6723d7ec5"
+            Ubuntu18: "ami-00edfb46b107f643c"
+            SUSE12: "ami-0bef6228aa05d215b"
+            SUSE15: "ami-0816cde11e4fdddec"
+        ap-southeast-1:
+            AmazonLinux2: "ami-0ec225b5e01ccb706"
+            RHEL8: "ami-02b6d9703a69265e9"
+            CentOS7: "ami-0bd760741aaf116e4"
+            Ubuntu16: "ami-01c54eee4ab8725c0"
+            Ubuntu18: "ami-0f7719e8b7ba25c61"
+            SUSE12: "ami-069a01be0e4a8b0b7"
+            SUSE15: "ami-09037fd065d6d7698"
+        ap-southeast-2:
+            AmazonLinux2: "ami-0970010f37c4f9c8d"
+            RHEL8: "ami-0810abbfb78d37cdf"
+            CentOS7: "ami-06fc68aa4ce0fea24"
+            Ubuntu16: "ami-07e22925f7bf77a0c"
+            Ubuntu18: "ami-04fcc97b5f6edcd89"
+            SUSE12: "ami-0a9a14a624a3116cf"
+            SUSE15: "ami-0320c4dd7c5ba560c"
+        ap-northeast-1:
+            AmazonLinux2: "ami-0f310fced6141e627"
+            RHEL8: "ami-07dd14faa8a17fb3e"
+            CentOS7: "ami-0e97eef4f96274dde"
+            Ubuntu16: "ami-0196a6e6d6129f2c8"
+            Ubuntu18: "ami-0278fe6949f6b1a06"
+            SUSE12: "ami-0db1d9f0c47ea98d6"
+            SUSE15: "ami-0985eb6c1f2ec1485"
+        ca-central-1:
+            AmazonLinux2: "ami-054362537f5132ce2"
+            RHEL8: "ami-04312317b9c8c4b51"
+            CentOS7: "ami-0b3c750bb3f4616c6"
+            Ubuntu16: "ami-03785c71db4b1f73a"
+            Ubuntu18: "ami-0edd51cc29813e254"
+            SUSE12: "ami-0f2e3d8e28f0502bf"
+            SUSE15: "ami-07563ea32a6fc69a0"
+        eu-central-1:
+            AmazonLinux2: "ami-076431be05aaf8080"
+            RHEL8: "ami-07dfba995513840b5"
+            CentOS7: "ami-0fa7c2050de3a8b88"
+            Ubuntu16: "ami-0bad2b43a871348da"
+            Ubuntu18: "ami-0e342d72b12109f91"
+            SUSE12: "ami-08060c2436cef41e7"
+            SUSE15: "ami-0d63f0d5c7bc514dd"
+        eu-west-1:
+            AmazonLinux2: "ami-06ce3edf0cff21f07"
+            RHEL8: "ami-08f4717d06813bf00"
+            CentOS7: "ami-031c0512d26596410"
+            Ubuntu16: "ami-000e077311ad994bd"
+            Ubuntu18: "ami-00035f41c82244dab"
+            SUSE12: "ami-0a3ee58747105ce46"
+            SUSE15: "ami-02ecd61acb94c136d"
+        eu-west-2:
+            AmazonLinux2: "ami-01a6e31ac994bbc09"
+            RHEL8: "ami-0fc841be1f929d7d1"
+            CentOS7: "ami-05aee1873f5014add"
+            Ubuntu16: "ami-0b1912235a9e70540"
+            Ubuntu18: "ami-0eb89db7593b5d434"
+            SUSE12: "ami-07d8d2cb6b1529ff4"
+            SUSE15: "ami-0cb6906963954f950"
+        eu-west-3:
+            AmazonLinux2: "ami-00077e3fed5089981"
+            RHEL8: "ami-09e973def6bd1ad96"
+            CentOS7: "ami-0764d30f67436ede5"
+            Ubuntu16: "ami-0b92a0ac418c64fb1"
+            Ubuntu18: "ami-08c757228751c5335"
+            SUSE12: "ami-066d51a95fd0ce50f"
+            SUSE15: "ami-0fd378c51c99847e9"
+        eu-north-1:
+            AmazonLinux2: "ami-0b7a46b4bd694e8a6"
+            RHEL8: "ami-0b149b24810ebb323"
+            CentOS7: "ami-0a3892a0bee7397da"
+            Ubuntu16: "ami-0caae0b310f01ff33"
+            Ubuntu18: "ami-050981837962d44ac"
+            SUSE12: "ami-070bad0989b367ad9"
+            SUSE15: "ami-07db43804309cb7d9"
+        af-south-1:
+            AmazonLinux2: ami-0b4a93eff849f20ca
+            RHEL8: ami-074db3e4a0ef550eb
+            CentOS7: ami-0f936596204dbda70
+            Ubuntu16: ami-03611e0f71e9d9f66
+            Ubuntu18: ami-0914f03407aa25fb8
+            SUSE12: ami-0353046c78f84c627
+            SUSE15: ami-03ac764931e9ea0e5
+        ap-east-1:
+            AmazonLinux2: ami-dd7731ac
+            RHEL8: ami-dbd395aa
+            CentOS7: ami-00b4d744750f4b098
+            Ubuntu16: ami-5493d525
+            Ubuntu18: ami-c790d6b6
+            SUSE12: ami-03111fb7317d9ea6d
+            SUSE15: ami-0f6b82251a980d5c1
+        eu-south-1:
+            AmazonLinux2: ami-06db5ba0a09e927c8
+            RHEL8: ami-05f5fb99d4803eb99
+            CentOS7: ami-0249aebb340921738
+            Ubuntu16: ami-0ae82b98c54a93226
+            Ubuntu18: ami-0748c300929be9a20
+            SUSE12: ami-01e7efcee3fd8fafe
+            SUSE15: ami-04e68979516f7cab0
+        me-south-1:
+            AmazonLinux2: ami-0fde637e0db57a2ab
+            RHEL8: ami-07d17669f2788b781
+            CentOS7: ami-004b8abdbf6f175be
+            Ubuntu16: ami-0fc34e7761742a76d
+            Ubuntu18: ami-051274f257aba97f9
+            SUSE12: ami-0206536c862595722
+            SUSE15: ami-0dc588e00961c9b23
+        sa-east-1:
+            AmazonLinux2: ami-003449ffb2605a74c
+            RHEL8: ami-00e63b4959e1a98b7
+            CentOS7: ami-0642ceae32b3fcbfe
+            Ubuntu16: ami-0167e670b9d5dab9a
+            Ubuntu18: ami-077d5d3682940b34a
+            SUSE12: ami-06eafdd993fba48ff
+            SUSE15: ami-02a8f447f39e5f0d3
